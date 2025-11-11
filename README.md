@@ -1,107 +1,211 @@
 # Event Management System
 
-## Overview
-The **Event Management System** is a web-based application built using **Spring Boot** following the **MVC (Model-View-Controller) pattern**. It allows users to browse, search, book, and cancel events while providing administrative functionalities to manage event records.
+A RESTful API built with Spring Boot for managing events and bookings with role-based access control.
 
 ## Features
-### User Features:
-- View all available events with pagination and sorting.
-- Search for events by name.
-- Book an event.
-- Cancel a booked event.
 
-### Admin Features:
-- Add new events.
-- Update existing event details.
-- Delete an event.
-- Secure access to admin functionalities.
+### Admin Capabilities
+- Add new events
+- Update existing events
+- Delete events
 
-### Security Features:
-- Uses **Spring Security** for authentication and authorization.
-- Implements **role-based access control (RBAC)** for users (`CUSTOMER`) and administrators (`ADMIN`).
-- Uses **Basic Authentication** for API security.
+### User Capabilities
+- Browse all events with pagination and sorting
+- Search events by name
+- View event details
+- Book event tickets
+- Cancel bookings
 
-## Tech Stack
-- **Java** (Spring Boot, Spring MVC, Spring Security)
-- **Spring Data JPA** (for database interactions)
-- **H2 / MySQL** (Database, configurable)
-- **Spring Boot Security** (Authentication & Authorization)
-- **RESTful APIs** (for client-server communication)
+## Technology Stack
+
+- **Framework**: Spring Boot
+- **Security**: Spring Security (Basic Authentication)
+- **Database**: MySQL
+- **ORM**: Spring Data JPA (Hibernate)
+- **Dependencies**: Lombok
 
 ## Project Structure
+
 ```
-com.spring.eventmanagementsystem
-│── controller
-│   ├── UserController.java
+src/main/java/com/spring/eventmanagementsystem/
+├── controller/
 │   ├── AdminController.java
-│── entities
+│   └── UserController.java
+├── entities/
 │   ├── Event.java
 │   ├── Booking.java
-│── service
+│   └── BookingStatus.java
+├── repository/
+│   ├── EventsRepository.java
+│   └── BookingRepository.java
+├── service/
 │   ├── EventsService.java
+│   ├── EventsServiceImpl.java
 │   ├── BookingService.java
-│── security
-│   ├── SecurityConfig.java
-│── repository
-│   ├── EventRepository.java
-│   ├── BookingRepository.java
-│── EventManagementSystemApplication.java
+│   └── BookingServiceImpl.java
+└── security/
+    └── SecurityConfig.java
 ```
 
-## API Endpoints
-### User Controller (`/events`)
-| HTTP Method | Endpoint              | Description |
-|------------|----------------------|-------------|
-| GET        | `/events/all`        | Get all events with pagination and sorting |
-| GET        | `/events/{eventId}`  | Get event details by ID |
-| GET        | `/events/search`     | Search for an event by name |
-| POST       | `/events/book`       | Book an event |
-| GET        | `/events/cancel/{bookingId}` | Cancel a booked event |
+## Prerequisites
 
-### Admin Controller (`/events/admin`)
-| HTTP Method | Endpoint              | Description |
-|------------|----------------------|-------------|
-| POST       | `/events/admin/add`   | Add a new event |
-| PUT        | `/events/admin/update/{eventId}` | Update event details |
-| DELETE     | `/events/admin/delete/{eventId}` | Delete an event |
+- Java 17 or higher
+- Maven
+- MySQL
+
+## Setup Instructions
+
+### 1. Database Configuration
+
+Create a MySQL database:
+
+```sql
+CREATE DATABASE event_management;
+```
+
+### 2. Application Properties
+
+Update `src/main/resources/application.properties` with your database credentials:
+
+```properties
+spring.datasource.url=jdbc:mysql://localhost:3306/event_management
+spring.datasource.username=root
+spring.datasource.password=your_password
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+```
+
+### 3. Run the Application
+
+```bash
+mvn spring-boot:run
+```
+
+The application will start on `http://localhost:8080`
+
+## Authentication
+
+The system uses Basic Authentication with in-memory users:
+
+| Username | Password | Role |
+|----------|----------|------|
+| admin | admin123 | ADMIN |
+| user | user123 | CUSTOMER |
+
+## API Endpoints
+
+### Admin Endpoints (Requires ROLE_ADMIN)
+
+#### Add Event
+```http
+POST /events/admin/add
+Authorization: Basic admin:admin123
+Content-Type: application/json
+
+{
+  "eventId": 1,
+  "eventName": "Spring Conference",
+  "eventDescription": "Annual Conference",
+  "eventDate": "2024-12-15",
+  "ticketPrice": 99.99,
+  "availableSeats": 200
+}
+```
+
+#### Update Event
+```http
+PUT /events/admin/update/{eventId}
+Authorization: Basic admin:admin123
+Content-Type: application/json
+```
+
+#### Delete Event
+```http
+DELETE /events/admin/delete/{eventId}
+Authorization: Basic admin:admin123
+```
+
+### User Endpoints (Requires ROLE_ADMIN or ROLE_CUSTOMER)
+
+#### Get All Events
+```http
+GET /events/user/all?page=0&size=5&sortBy=price&ascending=true
+Authorization: Basic user:user123
+```
+
+**Query Parameters:**
+- `page` (default: 0)
+- `size` (default: 5)
+- `sortBy` (default: price)
+- `ascending` (default: true)
+
+#### Get Event by ID
+```http
+GET /events/user/{eventId}
+Authorization: Basic user:user123
+```
+
+#### Search Event by Name
+```http
+GET /events/user/search?eventName=Spring Conference
+Authorization: Basic user:user123
+```
+
+#### Book Event
+```http
+POST /events/user/book
+Authorization: Basic user:user123
+Content-Type: application/json
+
+{
+  "bookingId": 1,
+  "userId": 101,
+  "eventId": 1,
+  "numOfSeats": 2,
+  "totalPrice": 199.98,
+  "bookingStatus": "CONFIRMED"
+}
+```
+
+#### Cancel Booking
+```http
+GET /events/user/cancel/{bookingId}
+Authorization: Basic user:user123
+```
+
+## Data Models
+
+### Event
+- `eventId` (int)
+- `eventName` (String)
+- `eventDescription` (String)
+- `eventDate` (String)
+- `ticketPrice` (double)
+- `availableSeats` (int)
+
+### Booking
+- `bookingId` (int)
+- `userId` (int)
+- `eventId` (int)
+- `numOfSeats` (int)
+- `totalPrice` (double)
+- `bookingStatus` (BookingStatus)
+
+### BookingStatus Enum
+- `NOT_PAID`
+- `CANCELLED`
+- `CONFIRMED`
 
 ## Security Configuration
-- **Role-Based Access Control (RBAC)**:
-  - Admin users can manage events (`ADMIN` role required for `/events/admin/**` routes).
-  - Customers can book and view events (`CUSTOMER` role required for `/events/user/**` routes).
-- **Basic Authentication** is used for user login.
-- Default credentials (can be changed in `SecurityConfig`):
-  - **Admin**: `admin / admin123`
-  - **User**: `user / user123`
 
-## Getting Started
-### Prerequisites
-- **Java 17+**
-- **Maven**
-- **Spring Boot**
+- CSRF is disabled
+- Basic Authentication enabled
+- `/events/admin/**` requires ROLE_ADMIN
+- `/events/user/**` requires ROLE_ADMIN or ROLE_CUSTOMER
+- Custom authentication entry point returns 404 for unauthorized access
 
-### Steps to Run Locally
-1. Clone the repository:
-   ```sh
-   git clone https://github.com/your-repo/event-management-system.git
-   cd event-management-system
-   ```
-2. Install dependencies:
-   ```sh
-   mvn clean install
-   ```
-3. Run the application:
-   ```sh
-   mvn spring-boot:run
-   ```
-4. Access API endpoints using Postman or any REST client.
+## Testing
 
-## Future Enhancements
-- Implement a frontend with React or Angular.
-- Add email notifications for bookings.
-- Integrate a payment gateway for paid events.
-- Deploy to AWS or other cloud services.
-
-## Author
-**Swadesh Chatterjee**
-
+```bash
+mvn test
+```
